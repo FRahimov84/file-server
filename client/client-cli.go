@@ -13,18 +13,18 @@ import (
 
 func main() {
 	list := flag.Bool("list", false, "get directory list")
-	upload := flag.Bool("upload", false, "get directory list")
-	download := flag.Bool("download", false, "get directory list")
+	upload := flag.Bool("upload", false, "upload file to server")
+	download := flag.Bool("download", false, "download file from server")
 
 	file, err := os.OpenFile("client-log.txt", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 	if err != nil {
-		fmt.Printf("can't start application client%e", err)
+		fmt.Printf("can't open %s get err: %e", file.Name(), err)
 		return
 	}
 	defer func() {
 		err := file.Close()
 		if err != nil {
-			fmt.Printf("can't close file %e", err)
+			fmt.Printf("can't close log file %e", err)
 		}
 	}()
 
@@ -33,11 +33,11 @@ func main() {
 
 	conn, err := net.Dial("tcp", "localhost:9999")
 	if err != nil {
-		log.Fatalf("can't connect to 0.0.0.0:9999 %v", err)
+		log.Fatalf("can't connect to localhost:9999 %v", err)
 		fmt.Println("Сервер не найден")
 		return
 	}
-	log.Print("Start application client")
+	log.Println("Start application client")
 	defer func() {
 		err = conn.Close()
 		if err != nil {
@@ -72,9 +72,9 @@ func main() {
 				return
 			}
 			counter++
-			fmt.Println(readString)
+			fmt.Print(readString)
 		}
-	}else if *download {
+	} else if *download {
 		_, err = writer.Write([]byte("DOWNLOAD\n"))
 		if err != nil {
 			log.Printf("can't write to localhost:9999 %v", err)
@@ -82,14 +82,13 @@ func main() {
 			return
 		}
 		err = writer.Flush()
-		fmt.Println("send download")
 		if err != nil {
 			log.Printf("can't write to localhost:9999 %v", err)
 			fmt.Println("Не удалось отправить запрос серверу")
 			return
 		}
 
-		_, err = writer.Write([]byte(os.Args[2]+"\n"))
+		_, err = writer.Write([]byte(os.Args[2] + "\n"))
 		if err != nil {
 			log.Printf("can't write to localhost:9999 %v", err)
 			fmt.Println("Не удалось отправить запрос серверу")
@@ -102,8 +101,7 @@ func main() {
 			fmt.Println("Не удалось отправить запрос серверу")
 			return
 		}
-		fmt.Println("send file name")
-		file, err := os.Create("client/"+os.Args[2])
+		file, err := os.Create("client/" + os.Args[2])
 		if err != nil {
 			log.Printf("can't create file %v", err)
 			fmt.Println("Не удалось создать файл")
@@ -115,7 +113,6 @@ func main() {
 				log.Printf("can't close file %v", err)
 			}
 		}()
-		fmt.Println("start reading")
 		bytes, err := ioutil.ReadAll(reader)
 		if err != nil {
 			log.Printf("can't write to file %v", err)
@@ -129,7 +126,8 @@ func main() {
 			fmt.Println("Не удалось записать в файл")
 			return
 		}
-	}else if *upload{
+		fmt.Printf("File %s was downloaded succesfully\n", os.Args[2])
+	} else if *upload {
 		_, err = writer.Write([]byte("UPLOAD\n"))
 		if err != nil {
 			log.Printf("can't write to localhost:9999 %v", err)
@@ -143,14 +141,13 @@ func main() {
 			return
 		}
 
-		_, err = writer.Write([]byte(os.Args[2]+"\n"))
+		_, err = writer.Write([]byte(os.Args[2] + "\n"))
 		if err != nil {
 			log.Printf("can't write to localhost:9999 %v", err)
 			fmt.Println("Не удалось отправить запрос серверу")
 			return
 		}
 		err = writer.Flush()
-
 		if err != nil {
 			log.Printf("can't write to localhost:9999 %v", err)
 			fmt.Println("Не удалось отправить запрос серверу")
@@ -162,6 +159,12 @@ func main() {
 			fmt.Println("Не удалось открыть файл")
 			return
 		}
+		defer func() {
+			err = file.Close()
+			if err != nil {
+				log.Printf("can't close file %v", err)
+			}
+		}()
 		bytes, err := ioutil.ReadAll(file)
 		if err != nil {
 			log.Printf("can't read file %v", err)
@@ -181,7 +184,7 @@ func main() {
 			fmt.Println("Не удалось отправить файл")
 			return
 		}
+		fmt.Printf("File %s was succesfully uploaded", os.Args[2])
 	}
 
 }
-
